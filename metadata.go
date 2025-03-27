@@ -2,11 +2,21 @@ package main
 
 import "fmt"
 
+type ForeignKeyTarget struct {
+	Schema string
+	Table  string
+	Column string
+}
+
 type Column struct {
-	Name         string
-	Datatype     string
-	Nullable     bool
-	DefaultValue *string
+	Ordinal         int
+	Name            string
+	Datatype        string
+	Nullable        bool
+	DefaultValue    *string
+	IsPrimaryKey    bool
+	IsAutoIncrement bool
+	FkTarget        *ForeignKeyTarget
 }
 
 type Table struct {
@@ -21,15 +31,25 @@ type Metadata struct {
 }
 
 func (c *Column) print() {
-	fmt.Printf("    %s %s", c.Name, c.Datatype)
+	fmt.Printf("    [%d] %s %s", c.Ordinal, c.Name, c.Datatype)
 	if c.Nullable {
 		fmt.Print(" NULL ")
 	} else {
 		fmt.Print(" NOT NULL")
 	}
+	if c.IsPrimaryKey {
+		fmt.Printf(" PRIMARY KEY")
+	}
+	if c.IsAutoIncrement {
+		fmt.Printf(" AUTOINCREMENT")
+	}
+	if c.FkTarget != nil {
+		fmt.Printf(" FOREIGN KEY (%s.%s->%s)", c.FkTarget.Schema, c.FkTarget.Table, c.FkTarget.Column)
+	}
 	if c.DefaultValue != nil {
 		fmt.Printf(" DEFAULT %s", *c.DefaultValue)
 	}
+
 	fmt.Printf("\n")
 }
 

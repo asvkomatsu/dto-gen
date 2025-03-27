@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 type ConnectionInfo struct {
@@ -31,14 +33,26 @@ func readMetadata(config Config) (*Metadata, error) {
 	return nil, fmt.Errorf("unsupported DMBS: %s", config.ConnInfo.DBMS)
 }
 
+func isValidDirectoryName(name string) bool {
+	pattern := `^[a-z0-9]+$`
+	re := regexp.MustCompile(pattern)
+	return re.MatchString(name)
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: dto-gen <folder-with-db.json>")
 		os.Exit(1)
 	}
 
-	// Build path to config file
 	folder := os.Args[1]
+	parts := strings.Split(os.Args[1], "/")
+	if !isValidDirectoryName(parts[len(parts)-1]) {
+		fmt.Println("Invalid Directory Name. Should be lowercase alphanumeric only!")
+		os.Exit(1)
+	}
+
+	// Build path to config file
 	configFile := filepath.Join(folder, "db.json")
 	_, err := os.Stat(configFile)
 	if os.IsNotExist(err) {
@@ -72,7 +86,7 @@ func main() {
 	metadata.print()
 
 	if config.Language == "go" {
-		err = write_golang(folder, metadata)
+		err = writeGolang(&(config.ConnInfo), folder, metadata)
 		if err != nil {
 			fmt.Println("Error writing go source code: ", err)
 			os.Exit(1)
