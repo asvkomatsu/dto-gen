@@ -9,9 +9,10 @@ import (
 )
 
 type ProjectionColumn struct {
-    Table   string
-    Column  string
-    SQLType string
+    Table    string
+    Column   string
+    SQLType  string
+    Nullable bool
 }
 
 type QueryParameter struct {
@@ -126,9 +127,16 @@ func parseQuery(confPart []string) (*CustomQuery, error) {
             }
 
             pcol := ProjectionColumn{
-                Table:   "",
-                Column:  "",
-                SQLType: "",
+                Table:    "",
+                Column:   "",
+                SQLType:  "",
+                Nullable: false,
+            }
+
+            if strings.HasSuffix(trimmedLine, "NULL") {
+                pcol.Nullable = true
+                trimmedLine = strings.Replace(trimmedLine, "NULL", "", 1)
+                trimmedLine = strings.TrimSpace(trimmedLine)
             }
 
             parts := strings.Split(trimmedLine, " ")

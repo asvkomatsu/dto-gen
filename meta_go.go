@@ -1000,9 +1000,13 @@ func generateCustomQueries(folder string, packageName string, metadata *Metadata
                 // iterate over cols of table, adding to struct if necessary
                 for k := range table.Columns {
                     if col.Column == "*" || col.Column == table.Columns[k].Name {
+                        prefix := ""
+                        if col.Nullable {
+                            prefix = "*"
+                        }
                         resS.addField(GoStructField{
                             Name: ToPascalCase(col.Table) + ToPascalCase(table.Columns[k].Name),
-                            Type: PostgreSQLTypes[table.Columns[k].Datatype],
+                            Type: prefix + PostgreSQLTypes[table.Columns[k].Datatype],
                             Annotation: &GoStructFieldAnnotation{
                                 Name:  "json",
                                 Value: col.Table + "_" + col.Column,
@@ -1135,6 +1139,7 @@ func generateCustomQueries(folder string, packageName string, metadata *Metadata
                 qf.addLine("    if err != nil {")
                 qf.addLine("        return nil, err")
                 qf.addLine("    }")
+                qf.addLine("    results = append(results, res)")
                 qf.addLine("}")
                 qf.addLine("return results, nil")
             }
