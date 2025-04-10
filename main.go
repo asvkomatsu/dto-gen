@@ -1,6 +1,11 @@
 package main
 
 import (
+	config2 "dto-gen/config"
+	metadata2 "dto-gen/metadata"
+	"dto-gen/metago"
+	"dto-gen/metapy"
+	"dto-gen/pgsql"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,34 +14,19 @@ import (
 	"strings"
 )
 
-type ConnectionInfo struct {
-	DBMS     string   `json:"dbms"`
-	Host     string   `json:"host"`
-	Port     int      `json:"port"`
-	Username string   `json:"username"`
-	Password string   `json:"password"`
-	Database string   `json:"database"`
-	Schemas  []string `json:"schemas"`
-}
-
-type Config struct {
-	Language string         `json:"language"`
-	ConnInfo ConnectionInfo `json:"connection"`
-}
-
-func readMetadata(config Config) (*Metadata, error) {
-	if config.ConnInfo.DBMS == "PostgreSQL" {
-		return readPostgresMetadata(config)
-	}
-
-	// no metadata read
-	return nil, fmt.Errorf("unsupported DMBS: %s", config.ConnInfo.DBMS)
-}
-
 func isValidDirectoryName(name string) bool {
 	pattern := `^[a-z0-9]+$`
 	re := regexp.MustCompile(pattern)
 	return re.MatchString(name)
+}
+
+func readMetadata(config config2.Config) (*metadata2.Metadata, error) {
+	if config.ConnInfo.DBMS == "PostgreSQL" {
+		return pgsql.ReadPostgresMetadata(config)
+	}
+
+	// no metadata read
+	return nil, fmt.Errorf("unsupported DMBS: %s", config.ConnInfo.DBMS)
 }
 
 func main() {
@@ -68,7 +58,7 @@ func main() {
 	}
 
 	// Parse json file
-	var config Config
+	var config config2.Config
 	err = json.Unmarshal(data, &config)
 	if err != nil {
 		fmt.Println("Error parsing config file: ", err)
@@ -86,20 +76,20 @@ func main() {
 	// metadata.print()
 
 	// Reading custom_queries.conf
-	customQueries, err := readCustomQueries(folder)
+	customQueries, err := config2.ReadCustomQueries(folder)
 	if err != nil {
 		fmt.Println("Error reading custom queries: ", err)
 		os.Exit(1)
 	}
 
 	if config.Language == "go" {
-		err = writeGolang(&(config.ConnInfo), folder, metadata, customQueries)
+		err = metago.WriteGolang(&(config.ConnInfo), folder, metadata, customQueries)
 		if err != nil {
 			fmt.Println("Error writing go source code: ", err)
 			os.Exit(1)
 		}
 	} else if config.Language == "python" {
-		err = writePython(&(config.ConnInfo), folder, metadata, customQueries)
+		err = metapy.WritePython(&(config.ConnInfo), folder, metadata, customQueries)
 		if err != nil {
 			fmt.Println("Error writing python source code: ", err)
 		}
