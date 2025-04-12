@@ -358,8 +358,17 @@ func generateToString(table *metadata.Table, source *GoSourceFile) error {
             conversionStr += fmt.Sprintf("%s.%s", tableNameCamelCase, metadata.ToPascalCase(col.Name))
         }
 
-        toStringFunc.addLine(
-            fmt.Sprintf("str += \" %s=\" + %s + \",\"", metadata.ToPascalCase(col.Name), conversionStr))
+        if col.Nullable {
+            toStringFunc.addLine(fmt.Sprintf("if %s.%s == nil {", tableNameCamelCase, metadata.ToPascalCase(col.Name)))
+            toStringFunc.addLine(fmt.Sprintf("    str += \" %s=nil,\"", metadata.ToPascalCase(col.Name)))
+            toStringFunc.addLine(fmt.Sprintf("} else {"))
+            toStringFunc.addLine(
+                fmt.Sprintf("    str += \" %s=\" + %s + \",\"", metadata.ToPascalCase(col.Name), conversionStr))
+            toStringFunc.addLine(fmt.Sprintf("}"))
+        } else {
+            toStringFunc.addLine(
+                fmt.Sprintf("str += \" %s=\" + %s + \",\"", metadata.ToPascalCase(col.Name), conversionStr))
+        }
     }
 
     toStringFunc.addLine(fmt.Sprintf("str += \" }\""))
@@ -384,7 +393,7 @@ func generateMultiLineToString(table *metadata.Table, source *GoSourceFile) erro
     toStringFunc.addArg(GoFuncArg{Name: "indent", Type: "string", IsPointer: false})
     toStringFunc.addReturn(GoFuncReturn{Type: "string", IsPointer: false})
 
-    toStringFunc.addLine(fmt.Sprintf("str := indent + \"%s{\"", tableNamePascalCase))
+    toStringFunc.addLine(fmt.Sprintf("str := indent + \"%s{\\n\"", tableNamePascalCase))
 
     for i := range table.Columns {
         col := table.Columns[i]
@@ -425,11 +434,20 @@ func generateMultiLineToString(table *metadata.Table, source *GoSourceFile) erro
             conversionStr += fmt.Sprintf("%s.%s", tableNameCamelCase, metadata.ToPascalCase(col.Name))
         }
 
-        toStringFunc.addLine(
-            fmt.Sprintf("str += indent + \"    %s=\" + %s + \",\"", metadata.ToPascalCase(col.Name), conversionStr))
+        if col.Nullable {
+            toStringFunc.addLine(fmt.Sprintf("if %s.%s == nil {", tableNameCamelCase, metadata.ToPascalCase(col.Name)))
+            toStringFunc.addLine(fmt.Sprintf("    str += indent + \"    %s=nil\\n\"", metadata.ToPascalCase(col.Name)))
+            toStringFunc.addLine(fmt.Sprintf("} else {"))
+            toStringFunc.addLine(
+                fmt.Sprintf("    str += indent + \"    %s=\" + %s + \"\\n\"", metadata.ToPascalCase(col.Name), conversionStr))
+            toStringFunc.addLine(fmt.Sprintf("}"))
+        } else {
+            toStringFunc.addLine(
+                fmt.Sprintf("str += indent + \"    %s=\" + %s + \"\\n\"", metadata.ToPascalCase(col.Name), conversionStr))
+        }
     }
 
-    toStringFunc.addLine(fmt.Sprintf("str += indent + \"}\""))
+    toStringFunc.addLine(fmt.Sprintf("str += indent + \"}\\n\""))
     toStringFunc.addLine("return str")
 
     source.addFunc(toStringFunc)
